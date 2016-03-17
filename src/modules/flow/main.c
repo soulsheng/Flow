@@ -34,24 +34,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma warning (disable:4996)
 
 #include <px4_config.h>
-#include <bsp/board.h>
+//#include <bsp/board.h>
 
 #include <stdio.h>
-#include <stdbool.h>
+//#include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
-#include "stm32f4xx_conf.h"
-#include "stm32f4xx.h"
+//#include "stm32f4xx_conf.h"
+//#include "stm32f4xx.h"
 
 #include "no_warnings.h"
-#include "mavlink_bridge_header.h"
-#include <mavlink.h>
+//#include "mavlink_bridge_header.h"
+//#include <mavlink.h>
 #include "settings.h"
 #include "utils.h"
-#include "led.h"
+//#include "led.h"
 #include "flow.h"
+#if 0
 #include "dcmi.h"
 #include "mt9v034.h"
 #include "gyro.h"
@@ -64,12 +66,15 @@
 #include "usbd_usr.h"
 #include "usbd_desc.h"
 #include "usbd_cdc_vcp.h"
+#endif
 #include "main.h"
+#if 0
 #include <uavcan_if.h>
 #include <px4_macros.h>
 
 //#define CONFIG_USE_PROBES
 #include <bsp/probes.h>
+#endif
 
 
 /* coprocessor control register (fpu) */
@@ -80,14 +85,14 @@
 
 
 /* prototypes */
-void delay(unsigned msec);
+void delay(unsigned int msec);
 void buffer_reset(void);
 
-__ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
+//__ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 
 /* fast image buffers for calculations */
-uint8_t image_buffer_8bit_1[FULL_IMAGE_SIZE] __attribute__((section(".ccm")));
-uint8_t image_buffer_8bit_2[FULL_IMAGE_SIZE] __attribute__((section(".ccm")));
+uint8_t image_buffer_8bit_1[FULL_IMAGE_SIZE] ;//__attribute__((section(".ccm")));
+uint8_t image_buffer_8bit_2[FULL_IMAGE_SIZE] ;//__attribute__((section(".ccm")));
 uint8_t buffer_reset_needed;
 
 /* boot time in milliseconds ticks */
@@ -112,7 +117,7 @@ volatile uint32_t boot_time10_us = 0;
 #define SYSTEM_STATE_COUNT	1000/* steps in milliseconds ticks */
 #define PARAMS_COUNT		100	/* steps in milliseconds ticks */
 #define LPOS_TIMER_COUNT 	100	/* steps in milliseconds ticks */
-
+#if 0
 static volatile unsigned timer[NTIMERS];
 static volatile unsigned timer_ms = MS_TIMER_COUNT;
 
@@ -122,7 +127,7 @@ bool receive_now = true;
 bool send_params_now = true;
 bool send_image_now = true;
 bool send_lpos_now = true;
-
+#endif 
 /* local position estimate without orientation, useful for unit testing w/o FMU */
 static struct lpos_t {
 	float x;
@@ -132,7 +137,7 @@ static struct lpos_t {
 	float vy;
 	float vz;
 } lpos;
-
+#if 0
 /**
   * @brief  Increment boot_time_ms variable and decrement timer array.
   * @param  None
@@ -232,17 +237,97 @@ void delay(unsigned msec)
 void buffer_reset(void) {
 	buffer_reset_needed = 1;
 }
-
+#endif
 /**
   * @brief  Main function.
   */
 int main(void)
 {
-	__enable_irq();
+	int i;
+	uint8_t* current_image;
+	uint8_t* previous_image;
 
+	float flow_compx;
+	float flow_compy;
+
+	/* calc velocity (negative of flow values scaled with distance) */
+	float new_velocity_x;
+	float new_velocity_y;
+
+	/* variables */
+	uint32_t counter;
+	uint8_t qual;
+
+	/* bottom flow variables */
+	float pixel_flow_x;
+	float pixel_flow_y;
+	float pixel_flow_x_sum;
+	float pixel_flow_y_sum;
+	float velocity_x_sum;
+	float velocity_y_sum;
+	float velocity_x_lp;
+	float velocity_y_lp;
+	int valid_frame_count;
+	int pixel_flow_count;
+
+
+	uint32_t time_since_last_sonar_update;
+
+	uint16_t image_size;
+	float x_rate;
+	float y_rate;
+	float z_rate;
+
+	float sonar_distance_filtered;
+	float sonar_distance_raw;
+	uint32_t deltatime;
+
+	/* calculate focal_length in pixel */
+	const float focal_length_px = (global_data.param[PARAM_FOCAL_LENGTH_MM]) / (4.0f * 6.0f) * 1000.0f; //original focal lenght: 12mm pixelsize: 6um, binning 4 enabled
+
+	static float accumulated_flow_x = 0;
+	static float accumulated_flow_y = 0;
+	static float accumulated_gyro_x = 0;
+	static float accumulated_gyro_y = 0;
+	static float accumulated_gyro_z = 0;
+	static uint16_t accumulated_framecount = 0;
+	static uint16_t accumulated_quality = 0;
+	static integration_timespan = 0;
+	static uint32_t lasttime = 0;
+
+	/* variables */
+	counter = 0;
+	qual = 0;
+
+	/* bottom flow variables */
+	pixel_flow_x = 0.0f;
+	pixel_flow_y = 0.0f;
+	pixel_flow_x_sum = 0.0f;
+	pixel_flow_y_sum = 0.0f;
+	velocity_x_sum = 0.0f;
+	velocity_y_sum = 0.0f;
+	velocity_x_lp = 0.0f;
+	velocity_y_lp = 0.0f;
+	valid_frame_count = 0;
+	pixel_flow_count = 0;
+	
+	time_since_last_sonar_update= 0;
+	
+	image_size = global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT];
+	x_rate = 0.0f;
+	y_rate = 0.0f;
+	z_rate = 0.0f;
+
+	sonar_distance_filtered = 1.0f;
+	sonar_distance_raw = 1.0f;
+
+#if 0
+	__enable_irq();
+#endif
 	/* load settings and parameters */
 	global_data_reset_param_defaults();
 	global_data_reset();
+#if 0
 	PROBE_INIT();
 	/* init led */
 	LEDInit(LED_ACT);
@@ -286,17 +371,18 @@ int main(void)
 
 	/* gyro config */
 	gyro_config();
+#endif
 
 	/* init and clear fast image buffers */
-	for (int i = 0; i < global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT]; i++)
+	for (i = 0; i < global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT]; i++)
 	{
 		image_buffer_8bit_1[i] = 0;
 		image_buffer_8bit_2[i] = 0;
 	}
 
-	uint8_t * current_image = image_buffer_8bit_1;
-	uint8_t * previous_image = image_buffer_8bit_2;
-
+	current_image = image_buffer_8bit_1;
+	previous_image = image_buffer_8bit_2;
+#if 0
 	/* usart config*/
 	usart_init();
 
@@ -315,46 +401,22 @@ int main(void)
 	timer[TIMER_RECEIVE] = SYSTEM_STATE_COUNT / 2;
 	timer[TIMER_PARAMS] = PARAMS_COUNT;
 	timer[TIMER_IMAGE] = global_data.param[PARAM_VIDEO_RATE];
-
-	/* variables */
-	uint32_t counter = 0;
-	uint8_t qual = 0;
-
-	/* bottom flow variables */
-	float pixel_flow_x = 0.0f;
-	float pixel_flow_y = 0.0f;
-	float pixel_flow_x_sum = 0.0f;
-	float pixel_flow_y_sum = 0.0f;
-	float velocity_x_sum = 0.0f;
-	float velocity_y_sum = 0.0f;
-	float velocity_x_lp = 0.0f;
-	float velocity_y_lp = 0.0f;
-	int valid_frame_count = 0;
-	int pixel_flow_count = 0;
-
-	static float accumulated_flow_x = 0;
-	static float accumulated_flow_y = 0;
-	static float accumulated_gyro_x = 0;
-	static float accumulated_gyro_y = 0;
-	static float accumulated_gyro_z = 0;
-	static uint16_t accumulated_framecount = 0;
-	static uint16_t accumulated_quality = 0;
-	static uint32_t integration_timespan = 0;
-	static uint32_t lasttime = 0;
-	uint32_t time_since_last_sonar_update= 0;
-
-	uavcan_start();
+#endif
+	
+	//uavcan_start();
 	/* main loop */
 	while (1)
 	{
+#if 0
                 PROBE_1(false);
                 uavcan_run();
                 PROBE_1(true);
+#endif 
 		/* reset flow buffers if needed */
 		if(buffer_reset_needed)
 		{
 			buffer_reset_needed = 0;
-			for (int i = 0; i < global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT]; i++)
+			for (i = 0; i < global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT]; i++)
 			{
 				image_buffer_8bit_1[i] = 0;
 				image_buffer_8bit_2[i] = 0;
@@ -362,7 +424,7 @@ int main(void)
 			delay(500);
 			continue;
 		}
-
+#if 0
 		/* calibration routine */
 		if(FLOAT_AS_BOOL(global_data.param[PARAM_VIDEO_ONLY]))
 		{
@@ -420,12 +482,12 @@ int main(void)
 			sonar_distance_filtered = 0.0f;
 			sonar_distance_raw = 0.0f;
 		}
-
+#endif
 		/* compute optical flow */
 		if (FLOAT_EQ_INT(global_data.param[PARAM_SENSOR_POSITION], BOTTOM))
 		{
 			/* copy recent image to faster ram */
-			dma_copy_image_buffers(&current_image, &previous_image, image_size, 1);
+			//dma_copy_image_buffers(&current_image, &previous_image, image_size, 1);
 
 			/* compute optical flow */
 			qual = compute_flow(previous_image, current_image, x_rate, y_rate, z_rate, &pixel_flow_x, &pixel_flow_y);
@@ -435,15 +497,15 @@ int main(void)
 			 * x / f = X / Z
 			 * y / f = Y / Z
 			 */
-			float flow_compx = pixel_flow_x / focal_length_px / (get_time_between_images() / 1000000.0f);
-			float flow_compy = pixel_flow_y / focal_length_px / (get_time_between_images() / 1000000.0f);
+			flow_compx = pixel_flow_x / focal_length_px / (get_time_between_images() / 1000000.0f);
+			flow_compy = pixel_flow_y / focal_length_px / (get_time_between_images() / 1000000.0f);
 
 			/* integrate velocity and output values only if distance is valid */
-			if (distance_valid)
+			if (1)
 			{
 				/* calc velocity (negative of flow values scaled with distance) */
-				float new_velocity_x = - flow_compx * sonar_distance_filtered;
-				float new_velocity_y = - flow_compy * sonar_distance_filtered;
+				new_velocity_x = - flow_compx * sonar_distance_filtered;
+				new_velocity_y = - flow_compy * sonar_distance_filtered;
 
 				time_since_last_sonar_update = (get_boot_time_us()- get_sonar_measure_time());
 
@@ -453,7 +515,7 @@ int main(void)
 					velocity_y_sum += new_velocity_y;
 					valid_frame_count++;
 
-					uint32_t deltatime = (get_boot_time_us() - lasttime);
+					deltatime = (get_boot_time_us() - lasttime);
 					integration_timespan += deltatime;
 					accumulated_flow_x += pixel_flow_y  / focal_length_px * 1.0f; //rad axis swapped to align x flow around y axis
 					accumulated_flow_y += pixel_flow_x  / focal_length_px * -1.0f;//rad
@@ -492,6 +554,8 @@ int main(void)
 		}
 
 		counter++;
+#if 0
+	  {
 
 		if (FLOAT_EQ_INT(global_data.param[PARAM_SENSOR_POSITION], BOTTOM))
 		{
@@ -708,5 +772,9 @@ int main(void)
 		{
 			LEDOff(LED_COM);
 		}
+
+	  }
+#endif
+
 	}
 }
