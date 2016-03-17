@@ -317,7 +317,7 @@ int main(void)
 	valid_frame_count = 0;
 	pixel_flow_count = 0;
 		
-	image_size = global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT];
+	image_size = global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT];// 64 * 64
 	x_rate = 0.0f;
 	y_rate = 0.0f;
 	z_rate = 0.0f;

@@ -58,12 +58,12 @@
 #define NUM_BLOCKS	5 // x & y number of tiles to check
 
 #define ENABLE_Gyro_Compensation	0 // enable gyro compensation
-#define ENABLE_ASM_ABSDIFF			0 // enable asm ABSDIFF
+#define ENABLE_ARM			0 // enable asm ABSDIFF
 
 #define sign(x) (( x > 0 ) - ( x < 0 ))
 
 //uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rate, float z_rate, float *pixel_flow_x, float *pixel_flow_y);
-#if ENABLE_ASM_ABSDIFF
+#if ENABLE_ARM
 // compliments of Adam Williams
 #define ABSDIFF(frame1, frame2) \
 ({ \
@@ -134,7 +134,7 @@
   \
  result; \
 })
-#endif
+
 /**
  * @brief Computes the Hessian at a pixel location
  *
@@ -389,6 +389,249 @@ static uint32_t compute_sad_8x8(uint8_t *image1, uint8_t *image2, uint16_t off1X
 	return acc;
 }
 
+#endif
+
+
+/**
+ * @brief Computes the Hessian at a pixel location
+ *
+ * The hessian (second order partial derivatives of the image) is
+ * a measure of the salience of the image at the appropriate
+ * box filter scale. It allows to judge wether a pixel
+ * location is suitable for optical flow calculation.
+ *
+ * @param image the array holding pixel data
+ * @param x location of the pixel in x
+ * @param y location of the pixel in y
+ *
+ * @return gradient magnitude
+ */
+static uint32_t compute_hessian_4x6_cpu(uint8_t *image, uint16_t x, uint16_t y, uint16_t row_size)
+{
+	int i,j;
+	uint32_t magnitude = 0;
+
+	// candidate for hessian calculation:
+	for (i=0; i<6; i++)
+	{
+		for (j=0; j<4; j++)
+		{
+			if (i==2 || i==3)
+			{
+				magnitude -=  image[i*row_size + j - 1] * 2;
+			}
+			else
+			{
+				magnitude +=  image[i*row_size + j - 1];
+			}
+		}
+	}
+
+	return magnitude;
+}
+
+/**
+ * @brief Compute the average pixel gradient of all horizontal and vertical steps, use SIMD SSE
+ *
+ * TODO compute_diff is not appropriate for low-light mode images
+ *
+ * @param image ...
+ * @param offX x coordinate of upper left corner of 8x8 pattern in image
+ * @param offY y coordinate of upper left corner of 8x8 pattern in image
+ */
+static uint32_t compute_diff_cpu(uint8_t *image, uint16_t offX, uint16_t offY, uint16_t row_size)
+{
+	int i,j;
+	int acc;
+	/* calculate position in image buffer */
+	uint16_t off = (offY + 2) * row_size + (offX + 2); // we calc only the 4x4 pattern
+
+	acc = 0;
+
+	/* calc row diff */
+	for (i=0; i<3; i++)
+	{
+		for (j=0; j<3; j++)
+		{
+			acc += abs( image[off + j + i * row_size] - image[off + j+1 + i * row_size] );
+		}
+	}
+
+	/* calc row diff */
+	for (j=0; j<3; j++)
+	{
+		for (i=0; i<3; i++)
+		{
+			acc += abs( image[off + j + i * row_size] - image[off + j + (i+1) * row_size] );
+		}
+	}
+
+	return acc;
+
+}
+
+/**
+ * @brief Compute SAD distances of subpixel shift of two 8x8 pixel patterns.
+ *
+ * @param image1 ...
+ * @param image2 ...
+ * @param off1X x coordinate of upper left corner of pattern in image1
+ * @param off1Y y coordinate of upper left corner of pattern in image1
+ * @param off2X x coordinate of upper left corner of pattern in image2
+ * @param off2Y y coordinate of upper left corner of pattern in image2
+ * @param acc array to store SAD distances for shift in every direction
+ */
+static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t off1X, uint16_t off1Y, uint16_t off2X, uint16_t off2Y, uint32_t *acc, uint16_t row_size)
+{
+	/* calculate position in image buffer */
+	uint16_t off1 = off1Y * row_size + off1X; // image1
+	uint16_t off2 = off2Y * row_size + off2X; // image2
+
+	uint32_t s0, s1, s2, s3, s4, s5, s6, s7, t1, t3, t5, t7;
+	uint16_t i;
+	for (i = 0; i < 8; i++)
+	{
+		acc[i] = 0;
+	}
+
+
+	/*
+	 * calculate for each pixel in the 8x8 field with upper left corner (off1X / off1Y)
+	 * every iteration is one line of the 8x8 field.
+	 *
+	 *  + - + - + - + - + - + - + - + - +
+	 *  |   |   |   |   |   |   |   |   |
+	 *  + - + - + - + - + - + - + - + - +
+	 *
+	 *
+	 */
+
+	for (i = 0; i < 8; i++)
+	{
+		/*
+		 * first column of 4 pixels:
+		 *
+		 *  + - + - + - + - + - + - + - + - +
+		 *  | x | x | x | x |   |   |   |   |
+		 *  + - + - + - + - + - + - + - + - +
+		 *
+		 * the 8 s values are from following positions for each pixel (X):
+		 *  + - + - + - +
+		 *  +   5   7   +
+		 *  + - + 6 + - +
+		 *  +   4 X 0   +
+		 *  + - + 2 + - +
+		 *  +   3   1   +
+		 *  + - + - + - +
+		 *
+		 *  variables (s1, ...) contains all 4 results (32bit -> 4 * 8bit values)
+		 *
+		 */
+
+		/* compute average of two pixel values */
+		s0 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 1 + (i+0) * row_size])));
+		s1 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+1) * row_size]), *((uint32_t*) &image2[off2 + 1 + (i+1) * row_size])));
+		s2 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 0 + (i+1) * row_size])));
+		s3 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+1) * row_size]), *((uint32_t*) &image2[off2 - 1 + (i+1) * row_size])));
+		s4 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 - 1 + (i+0) * row_size])));
+		s5 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i-1) * row_size]), *((uint32_t*) &image2[off2 - 1 + (i-1) * row_size])));
+		s6 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 0 + (i-1) * row_size])));
+		s7 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i-1) * row_size]), *((uint32_t*) &image2[off2 + 1 + (i-1) * row_size])));
+
+		/* these 4 t values are from the corners around the center pixel */
+		t1 = (__UHADD8(s0, s1));
+		t3 = (__UHADD8(s3, s4));
+		t5 = (__UHADD8(s4, s5));
+		t7 = (__UHADD8(s7, s0));
+
+		/*
+		 * finally we got all 8 subpixels (s0, t1, s2, t3, s4, t5, s6, t7):
+		 *  + - + - + - +
+		 *  |   |   |   |
+		 *  + - 5 6 7 - +
+		 *  |   4 X 0   |
+		 *  + - 3 2 1 - +
+		 *  |   |   |   |
+		 *  + - + - + - +
+		 */
+
+		/* fill accumulation vector */
+		acc[0] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s0, acc[0]);
+		acc[1] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t1, acc[1]);
+		acc[2] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s2, acc[2]);
+		acc[3] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t3, acc[3]);
+		acc[4] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s4, acc[4]);
+		acc[5] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t5, acc[5]);
+		acc[6] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s6, acc[6]);
+		acc[7] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t7, acc[7]);
+
+		/*
+		 * same for second column of 4 pixels:
+		 *
+		 *  + - + - + - + - + - + - + - + - +
+		 *  |   |   |   |   | x | x | x | x |
+		 *  + - + - + - + - + - + - + - + - +
+		 *
+		 */
+
+		s0 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 5 + (i+0) * row_size])));
+		s1 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+1) * row_size]), *((uint32_t*) &image2[off2 + 5 + (i+1) * row_size])));
+		s2 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 4 + (i+1) * row_size])));
+		s3 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+1) * row_size]), *((uint32_t*) &image2[off2 + 3 + (i+1) * row_size])));
+		s4 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 3 + (i+0) * row_size])));
+		s5 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i-1) * row_size]), *((uint32_t*) &image2[off2 + 3 + (i-1) * row_size])));
+		s6 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 4 + (i-1) * row_size])));
+		s7 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i-1) * row_size]), *((uint32_t*) &image2[off2 + 5 + (i-1) * row_size])));
+
+		t1 = (__UHADD8(s0, s1));
+		t3 = (__UHADD8(s3, s4));
+		t5 = (__UHADD8(s4, s5));
+		t7 = (__UHADD8(s7, s0));
+
+		acc[0] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s0, acc[0]);
+		acc[1] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t1, acc[1]);
+		acc[2] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s2, acc[2]);
+		acc[3] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t3, acc[3]);
+		acc[4] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s4, acc[4]);
+		acc[5] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t5, acc[5]);
+		acc[6] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s6, acc[6]);
+		acc[7] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t7, acc[7]);
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Compute SAD of two 8x8 pixel windows.
+ *
+ * @param image1 ...
+ * @param image2 ...
+ * @param off1X x coordinate of upper left corner of pattern in image1
+ * @param off1Y y coordinate of upper left corner of pattern in image1
+ * @param off2X x coordinate of upper left corner of pattern in image2
+ * @param off2Y y coordinate of upper left corner of pattern in image2
+ */
+static uint32_t compute_sad_8x8_cpu(uint8_t *image1, uint8_t *image2, uint16_t off1X, uint16_t off1Y, uint16_t off2X, uint16_t off2Y, uint16_t row_size)
+{
+	int acc;
+	int i,j;
+	/* calculate position in image buffer */
+	uint16_t off1 = off1Y * row_size + off1X; // image1
+	uint16_t off2 = off2Y * row_size + off2X; // image2
+
+	acc = 0;
+
+	for (i=0;i<8;i++)
+	{
+		for (j=0;j<8;j++)
+		{
+			acc = abs( image1[off1 + j + i * row_size], image2[off2 + j + i * row_size] );
+		}
+	}
+
+	return acc;
+}
+
 /**
  * @brief Computes pixel flow from image1 to image2
  *
@@ -472,7 +715,7 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 		for (i = pixLo; i < pixHi; i += pixStep)
 		{
 			/* test pixel if it is suitable for flow tracking */
-			diff = compute_diff(image1, i, j, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
+			diff = compute_diff_cpu(image1, i, j, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
 			if (diff < global_data.param[PARAM_BOTTOM_FLOW_FEATURE_THRESHOLD])
 			{
 				continue;
@@ -490,8 +733,8 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 
 				for (ii = winmin; ii <= winmax; ii++)
 				{
-#if !ENABLE_ASM_ABSDIFF
-					temp_dist = compute_sad_8x8(image1, image2, i, j, i + ii, j + jj, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
+#if !ENABLE_ARM
+					temp_dist = compute_sad_8x8_cpu(image1, image2, i, j, i + ii, j + jj, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
 #else
 					temp_dist = ABSDIFF(base1, base2 + ii);
 #endif
@@ -510,7 +753,7 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 				meanflowx += (float) sumx;
 				meanflowy += (float) sumy;
 
-				compute_subpixel(image1, image2, i, j, i + sumx, j + sumy, acc, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
+				compute_subpixel_cpu(image1, image2, i, j, i + sumx, j + sumy, acc, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
 				mindist = dist; // best SAD until now
 				mindir = 8; // direction 8 for no direction
 				for(k = 0; k < 8; k++)
