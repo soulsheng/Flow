@@ -91,12 +91,23 @@ typedef enum
 /******************************************************************
   * ALL SETTINGS VARIABLES
   */
-
+#if 0
 typedef struct
 {
 	/* nothing here until now */
 
 } SysState_TypeDef;
+#endif
+
+/*
+ * Resolution:
+ * ROW_SIZE * BINNING_ROW <= MAX_IMAGE_WIDTH
+ * COLUMN_SIZE * BINNING_COLUMN <= MAX_IMAGE_HEIGHT
+ */
+
+#define FULL_IMAGE_SIZE (188*120)
+#define FULL_IMAGE_ROW_SIZE (188)
+#define FULL_IMAGE_COLUMN_SIZE (120)
 
 enum global_param_id_t
 {
@@ -150,7 +161,7 @@ enum global_param_id_t
 
 struct global_struct
 {
-	SysState_TypeDef system_state;
+	//SysState_TypeDef system_state;
 	float param[ONBOARD_PARAM_COUNT];
 	char param_name[ONBOARD_PARAM_COUNT][ONBOARD_PARAM_NAME_LENGTH];
 	ParameterAccess_TypeDef param_access[ONBOARD_PARAM_COUNT];

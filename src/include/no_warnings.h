@@ -36,11 +36,12 @@
 
 #include <stdbool.h>
 
-inline bool FLOAT_AS_BOOL(float f);
-inline int FLOAT_EQ_INT(float f , int i);
-inline int FLOAT_EQ_FLOAT(float f1 , float f2);
+bool FLOAT_AS_BOOL(float f);
+int FLOAT_EQ_INT(float f , int i);
+int FLOAT_EQ_FLOAT(float f1 , float f2);
 
-inline bool FLOAT_AS_BOOL(float f)
+#ifdef GCC
+bool FLOAT_AS_BOOL(float f)
 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -63,5 +64,20 @@ inline int FLOAT_EQ_FLOAT(float f1 , float f2)
   return (f1 == f2);
 #pragma GCC diagnostic pop
 }
+#else
+bool FLOAT_AS_BOOL(float f)
+{
+	return (f != 0.0f);
+}
+int FLOAT_EQ_INT(float f , int i)
+{
+	return (f == i);
+}
+int FLOAT_EQ_FLOAT(float f1 , float f2)
+{
+	return (f1 == f2);
+}
+
+#endif
 
 #endif /* NO_WARNINGS_H_ */

@@ -77,10 +77,14 @@
   <ItemGroup>
     <ClInclude Include="..\include\flow.h" />
     <ClInclude Include="..\include\main.h" />
+    <ClInclude Include="..\include\settings.h" />
+    <ClInclude Include="..\include\utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\modules\flow\flow.c" />
     <ClCompile Include="..\modules\flow\main.c" />
+    <ClCompile Include="..\modules\flow\settings.c" />
+    <ClCompile Include="..\modules\flow\utils.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

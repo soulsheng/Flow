@@ -21,12 +21,24 @@
     <ClInclude Include="..\include\main.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\settings.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\modules\flow\flow.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\modules\flow\main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\modules\flow\settings.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\modules\flow\utils.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

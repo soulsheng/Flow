@@ -32,8 +32,9 @@
  *
  ****************************************************************************/
 
-#include <mavlink.h>
+//#include <mavlink.h>
 #include "settings.h"
+#include "string.h"
 
 enum global_param_id_t global_param_id;
 struct global_struct global_data;
@@ -57,11 +58,11 @@ void global_data_reset_param_defaults(void){
 	strcpy(global_data.param_name[PARAM_SENSOR_ID], "SYS_SENSOR_ID");
 	global_data.param_access[PARAM_SENSOR_ID] = READ_WRITE;
 
-	global_data.param[PARAM_SYSTEM_TYPE] = MAV_TYPE_GENERIC;
+	global_data.param[PARAM_SYSTEM_TYPE] = 0;
 	strcpy(global_data.param_name[PARAM_SYSTEM_TYPE], "SYS_TYPE");
 	global_data.param_access[PARAM_SYSTEM_TYPE] = READ_WRITE;
 
-	global_data.param[PARAM_AUTOPILOT_TYPE] = MAV_AUTOPILOT_GENERIC;
+	global_data.param[PARAM_AUTOPILOT_TYPE] = 0;
 	strcpy(global_data.param_name[PARAM_AUTOPILOT_TYPE], "SYS_AP_TYPE");
 	global_data.param_access[PARAM_AUTOPILOT_TYPE] = READ_WRITE;
 

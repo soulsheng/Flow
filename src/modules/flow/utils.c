@@ -165,7 +165,7 @@ char* flow_itoa(char *buf, unsigned int i, int base)
 	char *s;
 	const int len = 10;
 	int rem;
-	char rev[len+1];
+	char rev[11];
 
 	if (i == 0)
 		s = "0";
