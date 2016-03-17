@@ -46,3 +46,8 @@ xcode
 src/platforms/posix/px4_messages/
 src/platforms/posix-arm/px4_messages/
 src/platforms/qurt/px4_messages/
+/src/vc10/Debug
+/src/vc10/ipch
+/src/vc10/*.sdf
+/src/vc10/*.opensdf
+/src/vc10/*.suo
