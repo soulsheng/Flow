@@ -36,12 +36,16 @@
 #define UTILS_H_
 
 #include <stdint.h>
-
+#include <stdbool.h>
 /**
 * @brief  Float to Ascii string
 */
 char* flow_ftoa(float f);
 char* flow_ltoa(char *buf, unsigned long i, int base);
 char* flow_itoa(char *buf, unsigned int i, int base);
+
+bool FLOAT_AS_BOOL(float f);
+int FLOAT_EQ_INT(float f , int i);
+int FLOAT_EQ_FLOAT(float f1 , float f2);
 
 #endif /* UTILS_H_ */

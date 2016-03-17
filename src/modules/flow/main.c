@@ -46,7 +46,7 @@
 //#include "stm32f4xx_conf.h"
 //#include "stm32f4xx.h"
 
-#include "no_warnings.h"
+//#include "no_warnings.h"
 //#include "mavlink_bridge_header.h"
 //#include <mavlink.h>
 #include "settings.h"
@@ -117,10 +117,10 @@ volatile uint32_t boot_time10_us = 0;
 #define SYSTEM_STATE_COUNT	1000/* steps in milliseconds ticks */
 #define PARAMS_COUNT		100	/* steps in milliseconds ticks */
 #define LPOS_TIMER_COUNT 	100	/* steps in milliseconds ticks */
-#if 0
+
 static volatile unsigned timer[NTIMERS];
 static volatile unsigned timer_ms = MS_TIMER_COUNT;
-
+#if 0
 /* timer/system booleans */
 bool send_system_state_now = true;
 bool receive_now = true;
@@ -137,7 +137,7 @@ static struct lpos_t {
 	float vy;
 	float vz;
 } lpos;
-#if 0
+#if 1
 /**
   * @brief  Increment boot_time_ms variable and decrement timer array.
   * @param  None
@@ -145,14 +145,15 @@ static struct lpos_t {
   */
 void timer_update_ms(void)
 {
+	unsigned i;
 	boot_time_ms++;
 
 	/* each timer decrements every millisecond if > 0 */
-	for (unsigned i = 0; i < NTIMERS; i++)
+	for (i = 0; i < NTIMERS; i++)
 		if (timer[i] > 0)
 			timer[i]--;
 
-
+#if 0
 	if (timer[TIMER_LED] == 0)
 	{
 		/* blink activitiy */
@@ -195,6 +196,7 @@ void timer_update_ms(void)
 		send_lpos_now = true;
 		timer[TIMER_LPOS] = LPOS_TIMER_COUNT;
 	}
+#endif
 }
 
 /**
@@ -228,7 +230,7 @@ uint32_t get_boot_time_us(void)
 	return boot_time10_us*10;// *10 to return microseconds
 }
 
-void delay(unsigned msec)
+void delay(unsigned int msec)
 {
 	timer[TIMER_DELAY] = msec;
 	while (timer[TIMER_DELAY] > 0) {};
@@ -237,6 +239,11 @@ void delay(unsigned msec)
 void buffer_reset(void) {
 	buffer_reset_needed = 1;
 }
+uint32_t get_time_between_images(void)
+{
+	return 1; // ms
+}
+
 #endif
 /**
   * @brief  Main function.
@@ -271,7 +278,6 @@ int main(void)
 	int pixel_flow_count;
 
 
-	uint32_t time_since_last_sonar_update;
 
 	uint16_t image_size;
 	float x_rate;
@@ -310,9 +316,7 @@ int main(void)
 	velocity_y_lp = 0.0f;
 	valid_frame_count = 0;
 	pixel_flow_count = 0;
-	
-	time_since_last_sonar_update= 0;
-	
+		
 	image_size = global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT];
 	x_rate = 0.0f;
 	y_rate = 0.0f;
@@ -507,7 +511,6 @@ int main(void)
 				new_velocity_x = - flow_compx * sonar_distance_filtered;
 				new_velocity_y = - flow_compy * sonar_distance_filtered;
 
-				time_since_last_sonar_update = (get_boot_time_us()- get_sonar_measure_time());
 
 				if (qual > 0)
 				{

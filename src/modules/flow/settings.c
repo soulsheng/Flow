@@ -32,6 +32,7 @@
  *
  ****************************************************************************/
 
+#pragma warning (disable:4996)
 //#include <mavlink.h>
 #include "settings.h"
 #include "string.h"
@@ -228,11 +229,11 @@ void set_sensor_position_settings(uint8_t sensor_position)
 			break;
 
 		default:
-			debug_int_message_buffer("Unused sensor position:", sensor_position);
+			//debug_int_message_buffer("Unused sensor position:", sensor_position);
 			return;
 	}
 
-	debug_int_message_buffer("Set sensor position:", sensor_position);
+	//debug_int_message_buffer("Set sensor position:", sensor_position);
 	return;
 }
 

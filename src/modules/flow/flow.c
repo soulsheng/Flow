@@ -39,7 +39,7 @@
 #include <stdbool.h>
 #include <math.h>
 
-#include "no_warnings.h"
+//#include "no_warnings.h"
 #include "flow.h"
 #include "settings.h"
 #if 0
@@ -63,7 +63,7 @@
 #define sign(x) (( x > 0 ) - ( x < 0 ))
 
 //uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rate, float z_rate, float *pixel_flow_x, float *pixel_flow_y);
-
+#if ENABLE_ASM_ABSDIFF
 // compliments of Adam Williams
 #define ABSDIFF(frame1, frame2) \
 ({ \
@@ -134,7 +134,7 @@
   \
  result; \
 })
-
+#endif
 /**
  * @brief Computes the Hessian at a pixel location
  *

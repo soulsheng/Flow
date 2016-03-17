@@ -187,3 +187,16 @@ char* flow_itoa(char *buf, unsigned int i, int base)
 
 	return buf;
 }
+
+bool FLOAT_AS_BOOL(float f)
+{
+	return (f != 0.0f);
+}
+int FLOAT_EQ_INT(float f , int i)
+{
+	return (f == i);
+}
+int FLOAT_EQ_FLOAT(float f1 , float f2)
+{
+	return (f1 == f2);
+}
