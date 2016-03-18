@@ -487,8 +487,9 @@ static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t 
 	uint16_t off1 = off1Y * row_size + off1X; // image1
 	uint16_t off2 = off2Y * row_size + off2X; // image2
 
-	uint32_t s0, s1, s2, s3, s4, s5, s6, s7, t1, t3, t5, t7;
-	uint16_t i;
+	uint8_t s0[4], s1[4], s2[4], s3[4], s4[4], s5[4], s6[4], s7[4], t1[4], t3[4], t5[4], t7[4];
+	uint16_t i,j;
+	uint8_t  val;
 	for (i = 0; i < 8; i++)
 	{
 		acc[i] = 0;
@@ -529,20 +530,28 @@ static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t 
 		 */
 
 		/* compute average of two pixel values */
-		s0 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 1 + (i+0) * row_size])));
-		s1 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+1) * row_size]), *((uint32_t*) &image2[off2 + 1 + (i+1) * row_size])));
-		s2 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 0 + (i+1) * row_size])));
-		s3 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+1) * row_size]), *((uint32_t*) &image2[off2 - 1 + (i+1) * row_size])));
-		s4 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 - 1 + (i+0) * row_size])));
-		s5 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i-1) * row_size]), *((uint32_t*) &image2[off2 - 1 + (i-1) * row_size])));
-		s6 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 0 + (i-1) * row_size])));
-		s7 = (__UHADD8(*((uint32_t*) &image2[off2 +  0 + (i-1) * row_size]), *((uint32_t*) &image2[off2 + 1 + (i-1) * row_size])));
+		for(j = 0; j < 4; j++)
+		{
+			s0[j] = ( image2[off2 + j + (i+0) * row_size] + image2[off2 + 1 + j + (i+0) * row_size] ) >> 1;
+			s1[j] = ( image2[off2 + j + (i+1) * row_size] + image2[off2 + 1 + j + (i+1) * row_size] ) >> 1;
+			s2[j] = ( image2[off2 + j + (i+0) * row_size] + image2[off2 + 0 + j + (i+1) * row_size] ) >> 1;
+			s3[j] = ( image2[off2 + j + (i+1) * row_size] + image2[off2 - 1 + j + (i+1) * row_size] ) >> 1;
+
+			s4[j] = ( image2[off2 + j + (i+0) * row_size] + image2[off2 - 1 + j + (i+0) * row_size] ) >> 1;
+			s5[j] = ( image2[off2 + j + (i-1) * row_size] + image2[off2 - 1 + j + (i-1) * row_size] ) >> 1;
+			s6[j] = ( image2[off2 + j + (i+0) * row_size] + image2[off2 + 0 + j + (i-1) * row_size] ) >> 1;
+			s7[j] = ( image2[off2 + j + (i-1) * row_size] + image2[off2 + 1 + j + (i-1) * row_size] ) >> 1;
+		}
+
 
 		/* these 4 t values are from the corners around the center pixel */
-		t1 = (__UHADD8(s0, s1));
-		t3 = (__UHADD8(s3, s4));
-		t5 = (__UHADD8(s4, s5));
-		t7 = (__UHADD8(s7, s0));
+		for(j = 0; j < 4; j++)
+		{
+			t1[j] = ( s0[j], s1[j] ) >> 1;
+			t3[j] = ( s3[j], s4[j] ) >> 1;
+			t5[j] = ( s4[j], s5[j] ) >> 1;
+			t7[j] = ( s7[j], s0[j] ) >> 1;
+		}
 
 		/*
 		 * finally we got all 8 subpixels (s0, t1, s2, t3, s4, t5, s6, t7):
@@ -556,14 +565,21 @@ static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t 
 		 */
 
 		/* fill accumulation vector */
-		acc[0] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s0, acc[0]);
-		acc[1] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t1, acc[1]);
-		acc[2] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s2, acc[2]);
-		acc[3] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t3, acc[3]);
-		acc[4] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s4, acc[4]);
-		acc[5] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t5, acc[5]);
-		acc[6] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), s6, acc[6]);
-		acc[7] = __USADA8 ((*((uint32_t*) &image1[off1 + 0 + i * row_size])), t7, acc[7]);
+		for(j = 0; j < 4; j++)
+		{
+			val = image1[off1 + 0 + j + i * row_size];
+
+			acc[0] += abs( val - s0[j] );
+			acc[1] += abs( val - t1[j] );
+			acc[2] += abs( val - s2[j] );
+			acc[3] += abs( val - t3[j] );
+
+			acc[4] += abs( val - s4[j] );
+			acc[5] += abs( val - t5[j] );
+			acc[6] += abs( val - s6[j] );
+			acc[7] += abs( val - t7[j] );
+		}
+
 
 		/*
 		 * same for second column of 4 pixels:
@@ -573,29 +589,41 @@ static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t 
 		 *  + - + - + - + - + - + - + - + - +
 		 *
 		 */
+		for(j = 0; j < 4; j++)
+		{
+			s0[j] = ( image2[off2 + 4 + j + (i+0) * row_size] + image2[off2 + 5 + j + (i+0) * row_size] ) >> 1;
+			s1[j] = ( image2[off2 + 4 + j + (i+1) * row_size] + image2[off2 + 5 + j + (i+1) * row_size] ) >> 1;
+			s2[j] = ( image2[off2 + 4 + j + (i+0) * row_size] + image2[off2 + 4 + j + (i+1) * row_size] ) >> 1;
+			s3[j] = ( image2[off2 + 4 + j + (i+1) * row_size] + image2[off2 + 3 + j + (i+1) * row_size] ) >> 1;
 
-		s0 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 5 + (i+0) * row_size])));
-		s1 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+1) * row_size]), *((uint32_t*) &image2[off2 + 5 + (i+1) * row_size])));
-		s2 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 4 + (i+1) * row_size])));
-		s3 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+1) * row_size]), *((uint32_t*) &image2[off2 + 3 + (i+1) * row_size])));
-		s4 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 3 + (i+0) * row_size])));
-		s5 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i-1) * row_size]), *((uint32_t*) &image2[off2 + 3 + (i-1) * row_size])));
-		s6 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i+0) * row_size]), *((uint32_t*) &image2[off2 + 4 + (i-1) * row_size])));
-		s7 = (__UHADD8(*((uint32_t*) &image2[off2 + 4 + (i-1) * row_size]), *((uint32_t*) &image2[off2 + 5 + (i-1) * row_size])));
+			s4[j] = ( image2[off2 + 4 + j + (i+0) * row_size] + image2[off2 + 3 + j + (i+0) * row_size] ) >> 1;
+			s5[j] = ( image2[off2 + 4 + j + (i-1) * row_size] + image2[off2 + 3 + j + (i-1) * row_size] ) >> 1;
+			s6[j] = ( image2[off2 + 4 + j + (i+0) * row_size] + image2[off2 + 4 + j + (i-1) * row_size] ) >> 1;
+			s7[j] = ( image2[off2 + 4 + j + (i-1) * row_size] + image2[off2 + 5 + j + (i-1) * row_size] ) >> 1;
+		}
 
-		t1 = (__UHADD8(s0, s1));
-		t3 = (__UHADD8(s3, s4));
-		t5 = (__UHADD8(s4, s5));
-		t7 = (__UHADD8(s7, s0));
+		for(j = 0; j < 4; j++)
+		{
+			t1[j] = ( s0[j], s1[j] ) >> 1;
+			t3[j] = ( s3[j], s4[j] ) >> 1;
+			t5[j] = ( s4[j], s5[j] ) >> 1;
+			t7[j] = ( s7[j], s0[j] ) >> 1;
+		}
 
-		acc[0] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s0, acc[0]);
-		acc[1] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t1, acc[1]);
-		acc[2] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s2, acc[2]);
-		acc[3] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t3, acc[3]);
-		acc[4] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s4, acc[4]);
-		acc[5] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t5, acc[5]);
-		acc[6] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), s6, acc[6]);
-		acc[7] = __USADA8 ((*((uint32_t*) &image1[off1 + 4 + i * row_size])), t7, acc[7]);
+		for(j = 0; j < 4; j++)
+		{
+			val = image1[off1 + 4 + j + i * row_size];
+
+			acc[0] += abs( val - s0[j] );
+			acc[1] += abs( val - t1[j] );
+			acc[2] += abs( val - s2[j] );
+			acc[3] += abs( val - t3[j] );
+
+			acc[4] += abs( val - s4[j] );
+			acc[5] += abs( val - t5[j] );
+			acc[6] += abs( val - s6[j] );
+			acc[7] += abs( val - t7[j] );
+		}
 	}
 
 	return 0;
@@ -625,7 +653,7 @@ static uint32_t compute_sad_8x8_cpu(uint8_t *image1, uint8_t *image2, uint16_t o
 	{
 		for (j=0;j<8;j++)
 		{
-			acc = abs( image1[off1 + j + i * row_size], image2[off2 + j + i * row_size] );
+			acc += abs( image1[off1 + j + i * row_size], image2[off2 + j + i * row_size] );
 		}
 	}
 
