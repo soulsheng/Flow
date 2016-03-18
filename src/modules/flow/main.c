@@ -75,13 +75,18 @@
 //#define CONFIG_USE_PROBES
 #include <bsp/probes.h>
 #endif
+#include "bmpHandler.h"
 
+#define IMAGE_FILE_1	"11_Ls.bmp"
+#define IMAGE_FILE_2	"11_Rs.bmp"
+#define IMAGE_FILE_1_GRAY	"11_Ls_8.bmp"
 
 /* coprocessor control register (fpu) */
 #ifndef SCB_CPACR
 #define SCB_CPACR (*((uint32_t*) (((0xE000E000UL) + 0x0D00UL) + 0x088)))
 #endif
 
+#define RUN_ONE_FRAME		1	// calculate 2 frame, run once, disable loop
 
 
 /* prototypes */
@@ -408,8 +413,17 @@ int main(void)
 #endif
 	
 	//uavcan_start();
+#if RUN_ONE_FRAME
+
+	readImage( IMAGE_FILE_1, previous_image );
+	readImage( IMAGE_FILE_2, current_image );
+
+	saveImage( IMAGE_FILE_1_GRAY, previous_image, 64, 64 );
+
+#else
 	/* main loop */
 	while (1)
+#endif
 	{
 #if 0
                 PROBE_1(false);
@@ -425,8 +439,6 @@ int main(void)
 				image_buffer_8bit_1[i] = 0;
 				image_buffer_8bit_2[i] = 0;
 			}
-			delay(500);
-			continue;
 		}
 #if 0
 		/* calibration routine */
