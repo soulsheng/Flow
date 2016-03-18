@@ -432,18 +432,9 @@ int main(void)
                 PROBE_1(false);
                 uavcan_run();
                 PROBE_1(true);
-#endif 
-		/* reset flow buffers if needed */
-		if(buffer_reset_needed)
-		{
-			buffer_reset_needed = 0;
-			for (i = 0; i < global_data.param[PARAM_IMAGE_WIDTH] * global_data.param[PARAM_IMAGE_HEIGHT]; i++)
-			{
-				image_buffer_8bit_1[i] = 0;
-				image_buffer_8bit_2[i] = 0;
-			}
-		}
-#if 0
+
+
+
 		/* calibration routine */
 		if(FLOAT_AS_BOOL(global_data.param[PARAM_VIDEO_ONLY]))
 		{

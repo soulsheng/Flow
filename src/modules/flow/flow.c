@@ -744,7 +744,7 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 		{
 			/* test pixel if it is suitable for flow tracking */
 			diff = compute_diff_cpu(image1, i, j, (uint16_t) global_data.param[PARAM_IMAGE_WIDTH]);
-			if (diff < global_data.param[PARAM_BOTTOM_FLOW_FEATURE_THRESHOLD])
+			if (diff < global_data.param[PARAM_BOTTOM_FLOW_FEATURE_THRESHOLD])	// 30
 			{
 				continue;
 			}
