@@ -776,7 +776,7 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 			}
 
 			/* acceptance SAD distance threshhold */
-			if (dist < global_data.param[PARAM_BOTTOM_FLOW_VALUE_THRESHOLD])
+			if (dist < global_data.param[PARAM_BOTTOM_FLOW_VALUE_THRESHOLD]) // 5000
 			{
 				meanflowx += (float) sumx;
 				meanflowy += (float) sumy;
