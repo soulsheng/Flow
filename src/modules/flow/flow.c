@@ -835,7 +835,7 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 //	}
 
 	/* evaluate flow calculation */
-	if (meancount > 10)
+	if (meancount > 5) // 10
 	{
 		meanflowx /= meancount;
 		meanflowy /= meancount;
