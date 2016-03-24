@@ -77,9 +77,9 @@
 #endif
 #include "bmpHandler.h"
 
-#define IMAGE_FILE_1	"11_Ls.bmp"
-#define IMAGE_FILE_2	"11_Rs.bmp"
-#define IMAGE_FILE_1_GRAY	"11_Ls_8.bmp"
+#define IMAGE_FILE_1	"imgL_50.bmp"
+#define IMAGE_FILE_2	"imgL_5022.bmp"
+#define IMAGE_FILE_1_GRAY	"imgL_50_8.bmp"
 
 /* coprocessor control register (fpu) */
 #ifndef SCB_CPACR
@@ -421,7 +421,7 @@ int main(void)
 	readImage( IMAGE_FILE_1, previous_image );
 	readImage( IMAGE_FILE_2, current_image );
 
-	saveImage( IMAGE_FILE_1_GRAY, previous_image, 64, 64 );
+	//saveImage( IMAGE_FILE_1_GRAY, previous_image, 64, 64 );
 
 #else
 	/* main loop */
@@ -502,6 +502,7 @@ int main(void)
 			/* compute optical flow */
 			qual = compute_flow(previous_image, current_image, x_rate, y_rate, z_rate, &pixel_flow_x, &pixel_flow_y);
 
+			printf("pixel offset = (%.1f, %.1f) \n", pixel_flow_x, pixel_flow_y );
 			/*
 			 * real point P (X,Y,Z), image plane projection p (x,y,z), focal-length f, distance-to-scene Z
 			 * x / f = X / Z
