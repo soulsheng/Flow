@@ -653,7 +653,7 @@ static uint32_t compute_sad_8x8_cpu(uint8_t *image1, uint8_t *image2, uint16_t o
 	{
 		for (j=0;j<8;j++)
 		{
-			acc += abs( image1[off1 + j + i * row_size], image2[off2 + j + i * row_size] );
+			acc += abs( image1[off1 + j + i * row_size] - image2[off2 + j + i * row_size] );
 		}
 	}
 
