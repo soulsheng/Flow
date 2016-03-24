@@ -451,18 +451,18 @@ static uint32_t compute_diff_cpu(uint8_t *image, uint16_t offX, uint16_t offY, u
 	/* calc row diff */
 	for (i=0; i<3; i++)
 	{
-		for (j=0; j<3; j++)
+		for (j=0; j<4; j++)
 		{
-			acc += abs( image[off + j + i * row_size] - image[off + j+1 + i * row_size] );
+			acc += abs( image[off + j + i * row_size] - image[off + j + (i+1) * row_size] );
 		}
 	}
 
 	/* calc row diff */
 	for (j=0; j<3; j++)
 	{
-		for (i=0; i<3; i++)
+		for (i=0; i<4; i++)
 		{
-			acc += abs( image[off + j + i * row_size] - image[off + j + (i+1) * row_size] );
+			acc += abs( image[off + j + i * row_size] - image[off + j + 1 + i * row_size] );
 		}
 	}
 
