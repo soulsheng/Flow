@@ -547,10 +547,10 @@ static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t 
 		/* these 4 t values are from the corners around the center pixel */
 		for(j = 0; j < 4; j++)
 		{
-			t1[j] = ( s0[j], s1[j] ) >> 1;
-			t3[j] = ( s3[j], s4[j] ) >> 1;
-			t5[j] = ( s4[j], s5[j] ) >> 1;
-			t7[j] = ( s7[j], s0[j] ) >> 1;
+			t1[j] = ( s0[j] + s1[j] ) >> 1;
+			t3[j] = ( s3[j] + s4[j] ) >> 1;
+			t5[j] = ( s4[j] + s5[j] ) >> 1;
+			t7[j] = ( s7[j] + s0[j] ) >> 1;
 		}
 
 		/*
@@ -604,10 +604,10 @@ static uint32_t compute_subpixel_cpu(uint8_t *image1, uint8_t *image2, uint16_t 
 
 		for(j = 0; j < 4; j++)
 		{
-			t1[j] = ( s0[j], s1[j] ) >> 1;
-			t3[j] = ( s3[j], s4[j] ) >> 1;
-			t5[j] = ( s4[j], s5[j] ) >> 1;
-			t7[j] = ( s7[j], s0[j] ) >> 1;
+			t1[j] = ( s0[j] + s1[j] ) >> 1;
+			t3[j] = ( s3[j] + s4[j] ) >> 1;
+			t5[j] = ( s4[j] + s5[j] ) >> 1;
+			t7[j] = ( s7[j] + s0[j] ) >> 1;
 		}
 
 		for(j = 0; j < 4; j++)
