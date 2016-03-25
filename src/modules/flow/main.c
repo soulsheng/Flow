@@ -281,6 +281,8 @@ int main(void)
 	float velocity_y_lp;
 	int valid_frame_count;
 	int pixel_flow_count;
+	float real_offset_x;
+	float real_offset_y;
 
 
 
@@ -295,6 +297,8 @@ int main(void)
 
 	/* calculate focal_length in pixel */
 	float focal_length_px;
+	/* calculate offset for each pixel */
+	float offset_px;
 
 	static float accumulated_flow_x = 0;
 	static float accumulated_flow_y = 0;
@@ -327,7 +331,7 @@ int main(void)
 	y_rate = 0.0f;
 	z_rate = 0.0f;
 
-	sonar_distance_filtered = 1.0f;
+	sonar_distance_filtered = 100.0f;
 	sonar_distance_raw = 1.0f;
 
 #if 0
@@ -338,6 +342,7 @@ int main(void)
 	global_data_reset();
 
 	focal_length_px = (global_data.param[PARAM_FOCAL_LENGTH_MM]) / (4.0f * 6.0f) * 1000.0f; //original focal lenght: 12mm pixelsize: 6um, binning 4 enabled
+	offset_px = (4.0f * 6.0f * 1.0e-6) / (global_data.param[PARAM_FOCAL_LENGTH_MM]*1.0e-3) * sonar_distance_filtered; //original focal lenght: 12mm pixelsize: 6um, binning 4 enabled
 
 #if 0
 	PROBE_INIT();
@@ -510,6 +515,10 @@ int main(void)
 			 */
 			flow_compx = pixel_flow_x / focal_length_px / (get_time_between_images() / 1000000.0f);
 			flow_compy = pixel_flow_y / focal_length_px / (get_time_between_images() / 1000000.0f);
+
+			real_offset_x = pixel_flow_x * offset_px;
+			real_offset_y = pixel_flow_y * offset_px;
+			printf("real offset = (%.1f m, %.1f m) \n", real_offset_x, real_offset_y );
 
 			/* integrate velocity and output values only if distance is valid */
 			if (1)
