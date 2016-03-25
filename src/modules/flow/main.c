@@ -80,6 +80,7 @@
 #define IMAGE_FILE_1	"imgL_50.bmp"
 #define IMAGE_FILE_2	"imgL_5022.bmp"
 #define IMAGE_FILE_1_GRAY	"imgL_50_8.bmp"
+#define SONAR_DISTANCE_TEST	5
 
 /* coprocessor control register (fpu) */
 #ifndef SCB_CPACR
@@ -331,7 +332,7 @@ int main(void)
 	y_rate = 0.0f;
 	z_rate = 0.0f;
 
-	sonar_distance_filtered = 100.0f;
+	sonar_distance_filtered = SONAR_DISTANCE_TEST;
 	sonar_distance_raw = 1.0f;
 
 #if 0
@@ -518,7 +519,7 @@ int main(void)
 
 			real_offset_x = pixel_flow_x * offset_px;
 			real_offset_y = pixel_flow_y * offset_px;
-			printf("real offset = (%.1f m, %.1f m) \n", real_offset_x, real_offset_y );
+			printf("real offset = (%.1f mm, %.1f mm) \n", real_offset_x*1000, real_offset_y*1000 );
 
 			/* integrate velocity and output values only if distance is valid */
 			if (1)
