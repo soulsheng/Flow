@@ -78,7 +78,7 @@
 #include "bmpHandler.h"
 
 #define IMAGE_FILE_1	"imgL_50.bmp"
-#define IMAGE_FILE_2	"imgL_5005.bmp"
+#define IMAGE_FILE_2	"imgL_5025.bmp"
 #define IMAGE_FILE_1_GRAY	"imgL_50_8.bmp"
 #define SONAR_DISTANCE_TEST	5
 
