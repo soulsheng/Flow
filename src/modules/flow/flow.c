@@ -716,7 +716,7 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 
 	float subdirx, subdiry;
 	uint8_t qual;
-
+	bool bflow_filter;
         uint16_t pixLo = SEARCH_SIZE + 1;
         uint16_t pixHi = FRAME_SIZE - (SEARCH_SIZE + 1) - TILE_SIZE;
         uint16_t pixStep = (pixHi - pixLo) / NUM_BLOCKS + 1;
@@ -863,7 +863,8 @@ uint8_t compute_flow(uint8_t *image1, uint8_t *image2, float x_rate, float y_rat
 		/* check if there is a peak value in histogram */
 		if (1) //(histx[maxpositionx] > meancount / 6 && histy[maxpositiony] > meancount / 6)
 		{
-			if (FLOAT_AS_BOOL(global_data.param[PARAM_BOTTOM_FLOW_HIST_FILTER]))
+			bflow_filter = global_data.param[PARAM_BOTTOM_FLOW_HIST_FILTER];
+			if ( bflow_filter )
 			{
 
 				/* use histogram filter peek value */
