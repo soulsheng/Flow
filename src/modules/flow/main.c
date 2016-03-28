@@ -77,9 +77,13 @@
 #endif
 #include "bmpHandler.h"
 
-#define IMAGE_FILE_1	"imgL_50.bmp"
-#define IMAGE_FILE_2	"imgL_5025.bmp"
-#define IMAGE_FILE_1_GRAY	"imgL_50_8.bmp"
+//#define IMAGE_FILE_1	"data/1-1.bmp"
+//#define IMAGE_FILE_2	"data/1-1x01.bmp"	// PARAM_BOTTOM_FLOW_VALUE_THRESHOLD = 200
+//#define IMAGE_FILE_1	"data1/imgL_50.bmp"
+//#define IMAGE_FILE_2	"data1/imgL_5x01.bmp"	// PARAM_BOTTOM_FLOW_VALUE_THRESHOLD = 50
+#define IMAGE_FILE_1	"data2/sky.bmp"
+#define IMAGE_FILE_2	"data2/sky-x01.bmp"	// PARAM_BOTTOM_FLOW_VALUE_THRESHOLD = 500
+
 #define SONAR_DISTANCE_TEST	5
 
 /* coprocessor control register (fpu) */
