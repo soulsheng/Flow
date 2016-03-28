@@ -51,3 +51,6 @@ src/platforms/qurt/px4_messages/
 /src/vc10/*.sdf
 /src/vc10/*.opensdf
 /src/vc10/*.suo
+/src/vc10/data2
+/src/vc10/data1
+/src/vc10/data
