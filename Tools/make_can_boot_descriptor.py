@@ -83,7 +83,7 @@ class FirmwareImage(object):
             self._do_close = False
             self._padding = 0 
         else:
-            self._file = open(path_or_file, mode + "b")
+            self._file = open(path_or_file, mode)
             self._do_close = True
             self._padding = 4
 
